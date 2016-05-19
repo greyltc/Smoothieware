@@ -56,6 +56,48 @@ void Max31855::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
 
     // Spi settings: 1MHz (default), 16 bits, mode 0 (default)
     spi->format(16);
+    spi->frequency(500000);
+    
+    // start off by taking one single reading so that the buffer is never empty
+    readings.push_back(this->take_reading());
+}
+
+// this actually asks the harware for a temperature value and returns it
+float Max31855::take_reading()
+{
+	this->spi_cs_pin.set(false);
+    wait_us(1); // Must wait for first bit valid
+
+    // Read the first 16 bits
+    uint16_t data = spi->write(0);
+    //  Read next 16 bits
+    uint16_t data2 = spi->write(0);
+    
+    wait_us(1);
+
+    this->spi_cs_pin.set(true);
+    wait_us(1);
+    
+    float temperature;
+    
+    //Process temp
+    if (data & 0x0001){
+        // Error flag.
+        temperature = infinityf();
+        if (data2 & 0x0001) {} // open circuit fault
+		if (data2 & 0x0002) {} // short to ground fault
+		if (data2 & 0x0004) {} // short to Vcc fault
+    } else {
+        data = data >> 2;
+        if (data & 0x2000) // the value is negative
+        {
+			data = ~data;
+            temperature = ((data & 0x1FFF) + 1) / -4.f;
+		} else {
+			temperature = (data & 0x1FFF) / 4.f;
+		}
+	}
+	return temperature;
 }
 
 // returns an average of the last few temperature values we've read
@@ -65,7 +107,7 @@ float Max31855::get_temperature()
     this->read_flag=true;
 
     // Return an average of the last readings
-    if(readings.size()==0) return infinityf();
+    //if(readings.size()==0) return infinityf();
 
     float sum = 0;
     for (int i=0; i<readings.size(); i++)
@@ -80,46 +122,18 @@ void Max31855::on_idle()
     // this rate limits SPI access
     if(!this->read_flag) return;
 
-    this->spi_cs_pin.set(false);
-    wait_us(1); // Must wait for first bit valid
-
-    // Read 16 bits (writing something as well is required by the api)
-    uint16_t data = spi->write(0);
-    //  Read next 16 bits (diagnostics)
-    //	uint16_t data2 = spi->write(0);
-
-    this->spi_cs_pin.set(true);
-
-    float temperature;
-
-    //Process temp
-    if (data & 0x0001)
-    {
-        // Error flag.
-        temperature = infinityf();
-        // Todo: Interpret data2 for more diagnostics.
-    }
-    else
-    {
-        data = data >> 2;
-        temperature = (data & 0x1FFF) / 4.f;
-
-        if (data & 0x2000)
-        {
-            data = ~data;
-            temperature = ((data & 0x1FFF) + 1) / -4.f;
+    float temperature = this->take_reading();
+    
+    if (isinf(temperature)) {}
+    else {
+		
+		// check to see if our buffer is full
+		if (readings.size() >= readings.capacity()) {
+			readings.delete_tail();
         }
-    }
-
-    if (readings.size() >= readings.capacity()) {
-        readings.delete_tail();
-    }
-
-    // Discard occasional errors...
-    if(!isinf(temperature))
-    {
-        readings.push_back(temperature);
-    }
+        // put our reading in the buffer
+		readings.push_back(temperature);
+	}
 
     // don't read again until get_temperature() is called
     this->read_flag=false;
