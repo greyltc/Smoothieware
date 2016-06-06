@@ -391,27 +391,25 @@ void Extruder::on_gcode_received(void *argument)
                 }
             }
 
-        } else if (gcode->m == 1910 && this->enabled) {
+        } else if (gcode->m == 1910 && this->enabled && gcode->has_letter('E')) {
             // M1910.0 - move specific number of raw steps
             // M1910.1 - stop any moves
             // M1910.2 - move specific number of actuator units (usually mm but is degrees for a rotary delta)
             if(gcode->subcode == 0 || gcode->subcode == 2) {
-				this->en_pin.set(0); // enable motor
+                this->en_pin.set(0); // enable motor
+                int32_t e = 0, f = 200 * 16;
+                if (gcode->has_letter('F')) f = gcode->get_value('F');
 
-				int32_t e = 0, f = 200 * 16;
-				if (gcode->has_letter('F')) f = gcode->get_value('F');
-
-				if (gcode->has_letter('E')) {
-					float v = gcode->get_value('E');
-					if(gcode->subcode == 2) e = lroundf(v * this->steps_per_millimeter);
-					else e = roundf(v);
-					this->stepper_motor->move(e < 0, abs(e), f);
-				gcode->stream->printf("Moving E %ld steps at F %ld steps/sec\n", e, f);
-
-			} else if(gcode->subcode == 1) {
-				this->en_pin.set(1); // disable motor
-			}
-		}
+                float v = gcode->get_value('E');
+                if(gcode->subcode == 2) e = lroundf(v * this->steps_per_millimeter);
+                else e = roundf(v);
+                this->stepper_motor->move(e < 0, abs(e), f);
+                gcode->stream->printf("Moving E %ld steps at F %ld steps/sec\n", e, f);
+            } else if(gcode->subcode == 1) {
+                if(this->stepper_motor->is_moving()) this->stepper_motor->move(0, 0);
+                this->en_pin.set(1); // disable motor
+                gcode->stream->printf("Stopping extruder.\n");
+            }
 
         } else if( gcode->m == 17 || gcode->m == 18 || gcode->m == 82 || gcode->m == 83 || gcode->m == 84 ) {
             // Mcodes to pass along to on_gcode_execute
