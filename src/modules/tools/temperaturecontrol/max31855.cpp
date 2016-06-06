@@ -73,7 +73,7 @@ float Max31855::take_reading()
     //  Read next 16 bits
     uint16_t data2 = spi->write(0);
     
-    wait_us(1);
+    wait_us(5);
 
     this->spi_cs_pin.set(true);
     wait_us(1);
@@ -81,19 +81,19 @@ float Max31855::take_reading()
     float temperature;
     
     //Process temp
-    if (data & 0x0001){
+    if (data & 0x0001){ // some fault
         // Error flag.
         temperature = infinityf();
         if (data2 & 0x0001) {} // open circuit fault
 		if (data2 & 0x0002) {} // short to ground fault
 		if (data2 & 0x0004) {} // short to Vcc fault
-    } else {
+    } else { // no fault
         data = data >> 2;
         if (data & 0x2000) // the value is negative
         {
 			data = ~data;
             temperature = ((data & 0x1FFF) + 1) / -4.f;
-		} else {
+		} else { // the value is not negative
 			temperature = (data & 0x1FFF) / 4.f;
 		}
 	}
