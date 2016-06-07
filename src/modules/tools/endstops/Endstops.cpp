@@ -898,38 +898,40 @@ void Endstops::on_gcode_received(void *argument)
                 // M1910.0 - move specific number of raw steps
                 // M1910.1 - stop any moves
                 // M1910.2 - move specific number of actuator units (usually mm but is degrees for a rotary delta)
-                if(gcode->subcode == 0 || gcode->subcode == 2) {
-                    // Enable the motors
-                    THEKERNEL->stepper->turn_enable_pins_on();
+                if(gcode->has_letter('X') || gcode->has_letter('Y') || gcode->has_letter('Z')) {
+	                if(gcode->subcode == 0 || gcode->subcode == 2) {
+	                    // Enable the motors
+	                    THEKERNEL->stepper->turn_enable_pins_on();
 
-                    int32_t x = 0, y = 0, z = 0, f = 200 * 16;
-                    if (gcode->has_letter('F')) f = gcode->get_value('F');
+	                    int32_t x = 0, y = 0, z = 0, f = 200 * 16;
+	                    if (gcode->has_letter('F')) f = gcode->get_value('F');
 
-                    if (gcode->has_letter('X')) {
-                        float v = gcode->get_value('X');
-                        if(gcode->subcode == 2) x = lroundf(v * STEPS_PER_MM(X_AXIS));
-                        else x = roundf(v);
-                        STEPPER[X_AXIS]->move(x < 0, abs(x), f);
-                    }
-                    if (gcode->has_letter('Y')) {
-                        float v = gcode->get_value('Y');
-                        if(gcode->subcode == 2) y = lroundf(v * STEPS_PER_MM(Y_AXIS));
-                        else y = roundf(v);
-                        STEPPER[Y_AXIS]->move(y < 0, abs(y), f);
-                    }
-                    if (gcode->has_letter('Z')) {
-                        float v = gcode->get_value('Z');
-                        if(gcode->subcode == 2) z = lroundf(v * STEPS_PER_MM(Z_AXIS));
-                        else z = roundf(v);
-                        STEPPER[Z_AXIS]->move(z < 0, abs(z), f);
-                    }
-                    gcode->stream->printf("Moving X %ld Y %ld Z %ld steps at F %ld steps/sec\n", x, y, z, f);
+	                    if (gcode->has_letter('X')) {
+	                        float v = gcode->get_value('X');
+	                        if(gcode->subcode == 2) x = lroundf(v * STEPS_PER_MM(X_AXIS));
+	                        else x = roundf(v);
+	                        STEPPER[X_AXIS]->move(x < 0, abs(x), f);
+	                    }
+	                    if (gcode->has_letter('Y')) {
+	                        float v = gcode->get_value('Y');
+	                        if(gcode->subcode == 2) y = lroundf(v * STEPS_PER_MM(Y_AXIS));
+	                        else y = roundf(v);
+	                        STEPPER[Y_AXIS]->move(y < 0, abs(y), f);
+	                    }
+	                    if (gcode->has_letter('Z')) {
+	                        float v = gcode->get_value('Z');
+	                        if(gcode->subcode == 2) z = lroundf(v * STEPS_PER_MM(Z_AXIS));
+	                        else z = roundf(v);
+	                        STEPPER[Z_AXIS]->move(z < 0, abs(z), f);
+	                    }
+	                    gcode->stream->printf("Moving X %ld Y %ld Z %ld steps at F %ld steps/sec\n", x, y, z, f);
 
-                } else if(gcode->subcode == 1) {
-                    // stop any that are moving
-                    for (int i = 0; i < 3; ++i) {
-                        if(STEPPER[i]->is_moving()) STEPPER[i]->move(0, 0);
-                    }
+	                } else if(gcode->subcode == 1) {
+	                    // stop any that are moving
+	                    for (int i = 0; i < 3; ++i) {
+	                        if(STEPPER[i]->is_moving()) STEPPER[i]->move(0, 0);
+	                    }
+	                }
                 }
                 break;
             }
