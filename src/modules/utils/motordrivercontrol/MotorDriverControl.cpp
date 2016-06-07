@@ -377,7 +377,8 @@ void MotorDriverControl::enable(bool on)
 {
     switch(chip) {
         case DRV8711:
-            drv8711->set_enable(on);
+            //drv8711->set_enable(on);
+            // use the !sleep pin on drv8711 for this
             break;
 
         case TMC2660:
