@@ -377,7 +377,8 @@ void MotorDriverControl::enable(bool on)
 {
     switch(chip) {
         case DRV8711:
-            drv8711->set_enable(on);
+            //drv8711->set_enable(on); better to do this with a hardware line to the !sleep pin
+            wait_ms(1);// the datasheet says to wait a ms after coming out of sleep and before stepping 
             break;
 
         case TMC2660:
