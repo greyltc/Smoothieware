@@ -379,6 +379,7 @@ void MotorDriverControl::enable(bool on)
         case DRV8711:
             //drv8711->set_enable(on);
             // use the !sleep pin on drv8711 for this
+	    wait_ms(1);// the datasheet says to wait a ms between !sleep and stepping 
             break;
 
         case TMC2660:
