@@ -397,10 +397,14 @@ void Extruder::on_gcode_received(void *argument)
             // M1910.2 - like .0 except units are assumed to be given in mm and mm/s (scales values by the configured steps_per_mm)
             if(gcode->subcode == 0 || gcode->subcode == 2) {
                 int32_t e = 0, f = 200 * 16;
-                float scale = 1;
-                if(gcode->subcode == 2) scale = this->steps_per_millimeter;
-                if (gcode->has_letter('F')) f = roundf(scale * gcode->get_value('F'));
-                e = roundf(scale * gcode->get_value('E'));
+                float scale = 1.0;
+                if(gcode->subcode == 2) {
+                    scale = this->steps_per_millimeter;
+                }
+                if (gcode->has_letter('F')) {
+                    f = lroundf(scale * gcode->get_value('F'));
+                }
+                e = lroundf(scale * gcode->get_value('E'));
                 this->en_pin.set(0); // enable motor
                 this->stepper_motor->move(e < 0, abs(e), f);
                 gcode->stream->printf("Moving E %ld steps at F %ld steps/sec\n", e, f);
